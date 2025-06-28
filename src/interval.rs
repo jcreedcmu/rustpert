@@ -8,7 +8,7 @@ use std::ops;
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Interval<T>
 where
-    T: Copy,
+    T: Clone,
 {
     min: T,
     max: T,
@@ -16,41 +16,49 @@ where
 
 impl<T> Interval<T>
 where
-    T: Copy,
+    T: Clone,
 {
     pub fn new(min: T, max: T) -> Interval<T> {
         Interval { min, max }
     }
 
     pub fn exact(val: T) -> Interval<T> {
-        Interval { min: val, max: val }
+        let max = val.clone();
+        Interval { min: val, max }
     }
 }
 
 impl<T> Interval<T>
 where
-    T: num_traits::Signed + Ord + Copy,
+    T: num_traits::Signed + Ord + Clone,
 {
     pub fn square(self) -> Interval<T> {
         let sa = self.min.abs();
+        let sac = sa.clone();
         let ba = self.max.abs();
-        let sas = sa * sa;
-        let bas = ba * ba;
+        let bac = ba.clone();
+        let sas = sa * sac;
+        let sasc = sas.clone();
+        let bas = ba * bac;
+        let basc = bas.clone();
         Interval {
             min: if self.min.signum() != self.max.signum() {
                 T::zero()
             } else {
                 sas.min(bas)
             },
-            max: bas.max(sas),
+            max: basc.max(sasc),
         }
     }
 }
 
-impl ops::Add<Interval<i32>> for Interval<i32> {
-    type Output = Interval<i32>;
+impl<T> ops::Add<Interval<T>> for Interval<T>
+where
+    T: ops::Add<T, Output = T> + Clone,
+{
+    type Output = Interval<T>;
 
-    fn add(self, rhs: Interval<i32>) -> Interval<i32> {
+    fn add(self, rhs: Interval<T>) -> Interval<T> {
         Interval {
             min: self.min + rhs.min,
             max: self.max + rhs.max,
@@ -58,18 +66,30 @@ impl ops::Add<Interval<i32>> for Interval<i32> {
     }
 }
 
-impl ops::Mul<Interval<i32>> for Interval<i32> {
-    type Output = Interval<i32>;
+impl<T> ops::Mul<Interval<T>> for Interval<T>
+where
+    T: ops::Mul<T, Output = T> + Clone + Ord,
+{
+    type Output = Interval<T>;
 
-    fn mul(self, rhs: Interval<i32>) -> Interval<i32> {
+    fn mul(self, rhs: Interval<T>) -> Interval<T> {
+        let rsc = rhs.min.clone();
+        let ssc = self.min.clone();
+        let rbc = rhs.max.clone();
+        let sbc = self.max.clone();
+
         let bs = self.max * rhs.min;
-        let ss = self.min * rhs.min;
-        let sb = self.min * rhs.max;
-        let bb = self.max * rhs.max;
+        let ss = self.min * rsc;
+        let sb = ssc * rhs.max;
+        let bb = sbc * rbc;
 
+        let bsc = bs.clone();
+        let ssc = ss.clone();
+        let sbc = sb.clone();
+        let bbc = bb.clone();
         Interval {
             min: bs.min(ss).min(sb).min(bb),
-            max: bs.max(ss).max(sb).max(bb),
+            max: bsc.max(ssc).max(sbc).max(bbc),
         }
     }
 }
@@ -133,5 +153,15 @@ mod tests {
         let iv = Interval::new(1, -8);
         assert_eq!(iv.square(), Interval::new(0, 64));
         assert_eq!(iv * iv, Interval::new(-8, 64));
+    }
+
+    #[test]
+    fn test_rational() {
+        let half = Interval::new(rug::Rational::from((1, 4)), rug::Rational::from((3, 4)));
+        let three_halves = Interval::new(rug::Rational::from((5, 4)), rug::Rational::from((7, 4)));
+        assert_eq!(
+            half + three_halves,
+            Interval::new(rug::Rational::from((3, 2)), rug::Rational::from((5, 2)))
+        );
     }
 }
