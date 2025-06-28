@@ -33,15 +33,27 @@ where
 // be meaningful. We don't have trichotomy for intervals. An interval
 // spanning zero fails to be positive, and fails to be negative.
 
-impl<T> Interval<T>
-where
-    T: num_traits::Signed + Clone,
-{
-    pub fn is_positive(self) -> bool {
+trait IntervalSign {
+    fn is_positive(&self) -> bool;
+    fn is_negative(&self) -> bool;
+}
+
+impl IntervalSign for Interval<i32> {
+    fn is_positive(&self) -> bool {
         self.min.is_positive()
     }
 
-    pub fn is_negative(self) -> bool {
+    fn is_negative(&self) -> bool {
+        self.max.is_negative()
+    }
+}
+
+impl IntervalSign for Interval<rug::Rational> {
+    fn is_positive(&self) -> bool {
+        self.min.is_positive()
+    }
+
+    fn is_negative(&self) -> bool {
         self.max.is_negative()
     }
 }
@@ -181,5 +193,23 @@ mod tests {
             half + three_halves,
             Interval::new(rug::Rational::from((3, 2)), rug::Rational::from((5, 2)))
         );
+    }
+
+    #[test]
+    fn test_positive() {
+        assert_eq!(Interval::new(-3, 4).is_positive(), false);
+        assert_eq!(Interval::new(0, 4).is_positive(), false);
+        assert_eq!(Interval::new(1, 4).is_positive(), true);
+
+        assert_eq!(Interval::new(-3, -1).is_negative(), true);
+        assert_eq!(Interval::new(-3, 0).is_negative(), false);
+        assert_eq!(Interval::new(-3, 4).is_negative(), false);
+        assert_eq!(Interval::new(0, 4).is_negative(), false);
+        assert_eq!(Interval::new(1, 4).is_negative(), false);
+
+        let half = Interval::new(rug::Rational::from((1, 4)), rug::Rational::from((3, 4)));
+        let three_halves = Interval::new(rug::Rational::from((5, 4)), rug::Rational::from((7, 4)));
+        let rat_iv = half + three_halves;
+        assert_eq!(rat_iv.is_positive(), true);
     }
 }
