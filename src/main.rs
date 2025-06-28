@@ -1,4 +1,5 @@
 use std::fs;
+mod interval;
 mod json_rep;
 
 /// A point in 2d
