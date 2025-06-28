@@ -28,6 +28,24 @@ where
     }
 }
 
+// Note that we don't implement all of num_traits::Signed for
+// Interval, because I don't think an implementation of signum would
+// be meaningful. We don't have trichotomy for intervals. An interval
+// spanning zero fails to be positive, and fails to be negative.
+
+impl<T> Interval<T>
+where
+    T: num_traits::Signed + Clone,
+{
+    pub fn is_positive(self) -> bool {
+        self.min.is_positive()
+    }
+
+    pub fn is_negative(self) -> bool {
+        self.max.is_negative()
+    }
+}
+
 impl<T> Interval<T>
 where
     T: num_traits::Signed + Ord + Clone,
