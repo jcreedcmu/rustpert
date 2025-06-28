@@ -1,14 +1,8 @@
 use serde;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug)]
-pub struct CustomRational {
-    nume: rug::Integer,
-    denom: rug::Integer,
-}
-
 #[derive(Serialize, Deserialize, Debug)]
-pub struct Rational {
+pub struct WireRational {
     #[serde(rename = "n")]
     numerator: String,
     #[serde(rename = "d")]
@@ -16,29 +10,29 @@ pub struct Rational {
 }
 
 mod custom_rational {
-    use super::{CustomRational, Rational};
+    use super::WireRational;
     use rug::Assign;
     use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<CustomRational, D::Error>
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<rug::Rational, D::Error>
     where
         D: Deserializer<'de>,
     {
-        let r = Rational::deserialize(deserializer)?;
+        let r = WireRational::deserialize(deserializer)?;
         let mut n = rug::Integer::new();
         let mut d = rug::Integer::new();
         n.assign(rug::Integer::parse(r.numerator).unwrap());
         d.assign(rug::Integer::parse(r.denominator).unwrap());
-        Ok(CustomRational { nume: n, denom: d })
+        Ok(rug::Rational::from((n, d)))
     }
 
-    pub fn serialize<S>(r: &CustomRational, serializer: S) -> Result<S::Ok, S::Error>
+    pub fn serialize<S>(r: &rug::Rational, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        let rr = Rational {
-            numerator: r.nume.to_string(),
-            denominator: r.denom.to_string(),
+        let rr = WireRational {
+            numerator: r.numer().to_string(),
+            denominator: r.denom().to_string(),
         };
         rr.serialize(serializer)
     }
@@ -47,15 +41,17 @@ mod custom_rational {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Vertex {
     #[serde(with = "custom_rational")]
-    x: CustomRational,
-    y: Rational,
-    z: Rational,
+    pub x: rug::Rational,
+    #[serde(with = "custom_rational")]
+    pub y: rug::Rational,
+    #[serde(with = "custom_rational")]
+    pub z: rug::Rational,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Polyhedron {
     #[serde(rename = "v")]
-    vertices: Vec<Vertex>,
+    pub vertices: Vec<Vertex>,
     #[serde(rename = "f")]
-    faces: Vec<Vec<u32>>,
+    pub faces: Vec<Vec<u32>>,
 }
