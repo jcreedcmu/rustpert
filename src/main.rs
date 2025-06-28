@@ -1,41 +1,44 @@
 use std::fs;
 mod interval;
 mod json_rep;
+mod rotate;
 
 /// A point in 2d
-struct Point {
+struct Point2d {
     x: f64,
     y: f64,
 }
 
 /// A polygon in 2d
-type Poly = Vec<Point>;
+type Poly = Vec<Point2d>;
 
 /// A transformation in 2d that allows scaling and translation
 struct Xform {
     scale: f64,
-    translate: Point,
+    translate: Point2d,
 }
 
 /// Formats a pair of points as svg
-fn format_line(p1: &Point, p2: &Point) -> String {
+fn format_line(p1: &Point2d, p2: &Point2d) -> String {
     format!(
         r#"<line x1="{}" y1="{}" x2="{}" y2="{}" style="stroke:black;stroke-width:1" />"#,
         p1.x, p1.y, p2.x, p2.y
     )
 }
 
-/// Applies a 2d transform to a point
-fn apply_xf(xf: &Xform, p: &Point) -> Point {
-    Point {
-        x: xf.scale * p.x + xf.translate.x,
-        y: xf.scale * p.y + xf.translate.y,
+impl Xform {
+    /// Applies a 2d transform to a point
+    fn apply(&self, p: &Point2d) -> Point2d {
+        Point2d {
+            x: self.scale * p.x + self.translate.x,
+            y: self.scale * p.y + self.translate.y,
+        }
     }
 }
 
 /// Formats a transformed line as svg
-fn format_xf_line(xf: &Xform, p1: &Point, p2: &Point) -> String {
-    format_line(&apply_xf(xf, p1), &apply_xf(xf, p2))
+fn format_xf_line(xf: &Xform, p1: &Point2d, p2: &Point2d) -> String {
+    format_line(&xf.apply(p1), &xf.apply(p2))
 }
 
 /// Formats a transformed polygon as svg
@@ -54,10 +57,10 @@ fn format_xf_poly(xf: &Xform, p: &Poly) -> String {
 fn get_faces(p: &json_rep::Polyhedron) -> Vec<Poly> {
     let mut v: Vec<Poly> = Vec::new();
     for face in p.faces.iter() {
-        let mut ps: Vec<Point> = Vec::new();
+        let mut ps: Vec<Point2d> = Vec::new();
         for v_ix in face.iter() {
             let q: usize = *v_ix as usize;
-            ps.push(Point {
+            ps.push(Point2d {
                 x: p.vertices[q].x.to_f64(),
                 y: p.vertices[q].y.to_f64(),
             });
@@ -89,9 +92,9 @@ fn main() -> std::io::Result<()> {
     }
     let xf = Xform {
         scale: 75.,
-        translate: Point { x: 250., y: 250. },
+        translate: Point2d { x: 250., y: 250. },
     };
-    //    let lines_str = format_xf_line(&xf, &Point { x: 0., y: 0. }, &Point { x: 1., y: 1. });
+    //    let lines_str = format_xf_line(&xf, &Point2d { x: 0., y: 0. }, &Point2d { x: 1., y: 1. });
     let faces = get_faces(&poly);
     let poly_strs = faces
         .iter()
