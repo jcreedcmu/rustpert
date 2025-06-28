@@ -1,24 +1,37 @@
 use std::fs;
 
 mod json_rep {
+    use rug::Assign;
     use serde;
-    use serde::{Deserialize, Deserializer, Serialize};
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
     fn custom<'de, D>(deserializer: D) -> Result<CustomRational, D::Error>
     where
         D: Deserializer<'de>,
     {
         let r = Rational::deserialize(deserializer)?;
-        Ok(CustomRational {
-            nume: format!("+{}", r.numerator),
-            denom: format!("+{}", r.denominator),
-        })
+        let mut n = rug::Integer::new();
+        let mut d = rug::Integer::new();
+        n.assign(rug::Integer::parse(r.numerator).unwrap());
+        d.assign(rug::Integer::parse(r.denominator).unwrap());
+        Ok(CustomRational { nume: n, denom: d })
     }
 
-    #[derive(Debug, Serialize)]
+    fn customs<S>(r: &CustomRational, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let rr = Rational {
+            numerator: r.nume.to_string(),
+            denominator: r.denom.to_string(),
+        };
+        rr.serialize(serializer)
+    }
+
+    #[derive(Debug)]
     pub struct CustomRational {
-        nume: String,
-        denom: String,
+        nume: rug::Integer,
+        denom: rug::Integer,
     }
 
     #[derive(Serialize, Deserialize, Debug)]
@@ -32,6 +45,7 @@ mod json_rep {
     #[derive(Serialize, Deserialize, Debug)]
     pub struct Vertex {
         #[serde(deserialize_with = "custom")]
+        #[serde(serialize_with = "customs")]
         x: CustomRational,
         y: Rational,
         z: Rational,
