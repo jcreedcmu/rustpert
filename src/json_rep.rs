@@ -2,6 +2,10 @@ use serde;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
+/// A rational number in the format of the json that tom7 gave me.
+///
+/// "n" for numerator and "d" for denominator, as decimal integer
+/// strings.
 pub struct WireRational {
     #[serde(rename = "n")]
     numerator: String,
@@ -9,6 +13,8 @@ pub struct WireRational {
     denominator: String,
 }
 
+/// Serialization adapter so that raw num/denom strings in json become
+/// actual GMP rationals at runtime.
 mod custom_rational {
     use super::WireRational;
     use rug::Assign;
@@ -38,6 +44,7 @@ mod custom_rational {
     }
 }
 
+/// A vertex of a polyhedron
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Vertex {
     #[serde(with = "custom_rational")]
@@ -48,10 +55,13 @@ pub struct Vertex {
     pub z: rug::Rational,
 }
 
+/// A polyhedron with vertex and face information
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Polyhedron {
     #[serde(rename = "v")]
+    /// The vertices, represented as triples of rational coordinates.
     pub vertices: Vec<Vertex>,
     #[serde(rename = "f")]
+    /// The faces, represented as lists of indexes into `vertices` above.
     pub faces: Vec<Vec<u32>>,
 }
