@@ -1,3 +1,4 @@
+mod env;
 mod geom;
 mod interval;
 mod json_rep;
@@ -64,7 +65,7 @@ fn get_proj_faces(vs: &Vec<Point3d<Rational>>, fs: &Vec<Vec<usize>>) -> Vec<Poly
     fs.iter().map(|face| face.iter().map(|v_ix| proj_vertex(&vs[*v_ix])).collect()).collect()
 }
 
-fn render_faces(xf: &Xform, proj_faces: &Vec<Poly>, face_indexes: Vec<usize>) -> String {
+fn render_faces(xf: &Xform, proj_faces: &Vec<Poly>, face_indexes: &Vec<usize>) -> String {
     face_indexes
         .iter()
         .map(|face_index| {
@@ -102,24 +103,6 @@ fn make_label(xf: &Xform, i: usize, v: &Point3d<rug::Rational>) -> String {
     )
 }
 
-/// Returns the list of indices of faces that have positive orientation
-fn get_positive_faces(vs: &Vec<Point3d<Rational>>, fs: &Vec<Vec<usize>>) -> Vec<usize> {
-    fs.iter()
-        .enumerate()
-        .filter_map(|(i, face)| {
-            let v0 = vs[face[0]].clone();
-            let v1 = vs[face[1]].clone();
-            let v2 = vs[face[2]].clone();
-            let cprod = (v1.clone() - v0.clone()).cross(v2 - v0);
-            if cprod.z > 0 {
-                Some(i)
-            } else {
-                None
-            }
-        })
-        .collect()
-}
-
 /// Print out some debugging information.
 fn main() -> std::io::Result<()> {
     let json_string = fs::read_to_string("data/rational-snub.json")?;
@@ -154,17 +137,19 @@ fn main() -> std::io::Result<()> {
 
     let vertices = vertices.into_iter().map(|v| q.clone() * v).collect();
 
-    let positive_faces = get_positive_faces(&vertices, &faces);
-    let proj_faces = get_proj_faces(&vertices, &faces);
+    let env = env::Env::new(vertices, faces, vec![0, 16, 3, 23, 5, 14, 6, 19, 9, 20, 2, 17]);
+
+    let proj_faces = get_proj_faces(&env.vertices, &env.faces);
     let poly_strs =
         proj_faces.iter().map(|face| format_xf_poly(&xf, face)).collect::<Vec<String>>().join("\n");
-    let label_strs = vertices
+    let label_strs = env
+        .vertices
         .iter()
         .enumerate()
         .map(|(i, v)| make_label(&xf, i, v))
         .collect::<Vec<String>>()
         .join("\n");
-    let face_strs = render_faces(&xf, &proj_faces, positive_faces);
+    let face_strs = render_faces(&xf, &proj_faces, &env.positive_faces);
     fs::write(
         "/tmp/a.svg",
         format!(
