@@ -59,15 +59,9 @@ fn proj_vertex(v: &Point3d<Rational>) -> Point2d {
 
 /// Get the coordinates of all faces of a polyhedron, projected to 2d
 fn get_proj_faces(vs: &Vec<Point3d<Rational>>, fs: &Vec<Vec<u32>>) -> Vec<Poly> {
-    let mut v: Vec<Poly> = Vec::new();
-    for face in fs.iter() {
-        let mut ps: Vec<Point2d> = Vec::new();
-        for v_ix in face.iter() {
-            ps.push(proj_vertex(&vs[*v_ix as usize]));
-        }
-        v.push(ps);
-    }
-    v
+    fs.iter()
+        .map(|face| face.iter().map(|v_ix| proj_vertex(&vs[*v_ix as usize])).collect())
+        .collect()
 }
 
 fn make_label(xf: &Xform, i: usize, v: &Point3d<rug::Rational>) -> String {
