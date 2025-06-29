@@ -1,4 +1,6 @@
 use crate::geom::Point3d;
+use crate::render;
+use crate::render_geom::{Point2d, Poly};
 use rug::Rational;
 
 /// An environment type containing other things
@@ -47,6 +49,13 @@ fn get_positive_faces(vs: &Vec<Point3d<Rational>>, fs: &Vec<Vec<usize>>) -> Vec<
         .collect()
 }
 
+/// Project a 3d vertex into 3d
+///
+/// The current projection discards the z coordinate.
+fn proj_vertex(v: &Point3d<Rational>) -> Point2d {
+    Point2d { x: v.x.to_f64(), y: v.y.to_f64() }
+}
+
 impl Env {
     pub fn new(
         vertices: Vec<Point3d<Rational>>,
@@ -55,5 +64,18 @@ impl Env {
     ) -> Env {
         let positive_faces = get_positive_faces(&vertices, &faces);
         Env { vertices, faces, circuit, positive_faces }
+    }
+
+    /// Returns svg string
+    pub fn render(&self) -> String {
+        render::render(&self)
+    }
+
+    /// Get the coordinates of all faces of a polyhedron, projected to 2d
+    pub fn get_proj_faces(&self) -> Vec<Poly> {
+        self.faces
+            .iter()
+            .map(|face| face.iter().map(|v_ix| proj_vertex(&self.vertices[*v_ix])).collect())
+            .collect()
     }
 }
