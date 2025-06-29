@@ -11,7 +11,7 @@ pub struct Quat<T> {
 }
 
 /// A point in 3d
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Point3d<T> {
     pub x: T,
     pub y: T,
@@ -23,12 +23,7 @@ where
     T: ops::Neg<Output = T> + Clone,
 {
     pub fn conj(&self) -> Quat<T> {
-        Quat {
-            r: self.r.clone(),
-            a: -self.a.clone(),
-            b: -self.b.clone(),
-            c: -self.c.clone(),
-        }
+        Quat { r: self.r.clone(), a: -self.a.clone(), b: -self.b.clone(), c: -self.c.clone() }
     }
 }
 
@@ -50,18 +45,8 @@ where
 {
     type Output = Quat<T>;
     fn mul(self, rhs: Quat<T>) -> Quat<T> {
-        let Quat {
-            r: xr,
-            a: xa,
-            b: xb,
-            c: xc,
-        } = self;
-        let Quat {
-            r: yr,
-            a: ya,
-            b: yb,
-            c: yc,
-        } = rhs;
+        let Quat { r: xr, a: xa, b: xb, c: xc } = self;
+        let Quat { r: yr, a: ya, b: yb, c: yc } = rhs;
         Quat {
             r: xr.clone() * yr.clone()
                 - xa.clone() * ya.clone()
@@ -89,12 +74,7 @@ where
 {
     type Output = Point3d<T>;
     fn mul(self, rhs: Point3d<T>) -> Point3d<T> {
-        let rhsq = Quat {
-            r: T::zero(),
-            a: rhs.x,
-            b: rhs.y,
-            c: rhs.z,
-        };
+        let rhsq = Quat { r: T::zero(), a: rhs.x, b: rhs.y, c: rhs.z };
         let sn = self.clone().sqnorm();
         let non_norm = self.clone() * rhsq * self.conj();
         Point3d {
@@ -111,11 +91,7 @@ where
 {
     type Output = Point3d<T>;
     fn sub(self, rhs: Point3d<T>) -> Point3d<T> {
-        Point3d {
-            x: self.x - rhs.x,
-            y: self.y - rhs.y,
-            z: self.z - rhs.z,
-        }
+        Point3d { x: self.x - rhs.x, y: self.y - rhs.y, z: self.z - rhs.z }
     }
 }
 
@@ -127,7 +103,7 @@ where
         Point3d {
             x: self.y.clone() * rhs.z.clone() - self.z.clone() * rhs.y.clone(),
             y: self.z.clone() * rhs.x.clone() - self.x.clone() * rhs.z.clone(),
-            z: self.x.clone() * rhs.y.clone() - self.y.clone() * rhs.z.clone(),
+            z: self.x.clone() * rhs.y.clone() - self.y.clone() * rhs.x.clone(),
         }
     }
 }

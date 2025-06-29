@@ -64,6 +64,24 @@ fn get_proj_faces(vs: &Vec<Point3d<Rational>>, fs: &Vec<Vec<u32>>) -> Vec<Poly> 
         .collect()
 }
 
+fn render_faces(xf: &Xform, proj_faces: &Vec<Poly>, face_indexes: Vec<usize>) -> String {
+    face_indexes
+        .iter()
+        .map(|face_index| {
+            let points_str = proj_faces[*face_index]
+                .iter()
+                .map(|p| {
+                    let q = xf.apply(p);
+                    format!("{},{}", q.x, q.y)
+                })
+                .collect::<Vec<String>>()
+                .join(" ");
+            format!(r#" <polygon points="{}" style="fill:#def;" /> "#, points_str)
+        })
+        .collect::<Vec<String>>()
+        .join("\n")
+}
+
 fn make_label(xf: &Xform, i: usize, v: &Point3d<rug::Rational>) -> String {
     let c = xf.apply(&Point2d { x: v.x.to_f64(), y: v.y.to_f64() });
     let label_scale: f64 = 1.075;
@@ -85,8 +103,14 @@ fn get_positive_faces(vs: &Vec<Point3d<Rational>>, fs: &Vec<Vec<u32>>) -> Vec<us
         .filter_map(|(i, face)| {
             let v0 = vs[face[0] as usize].clone();
             let v1 = vs[face[1] as usize].clone();
-            let v2 = vs[face[1] as usize].clone();
+            let v2 = vs[face[2] as usize].clone();
+            if i == 24 {
+                println!("hello {:?} {:?} {:?}", v0.clone(), v1.clone(), v2.clone());
+            }
             let cprod = (v1.clone() - v0.clone()).cross(v2 - v0);
+            if i == 24 {
+                println!("hello {:?} {:?} ", cprod.z, cprod.z.to_f64());
+            }
             if cprod.z > 0 {
                 Some(i)
             } else {
@@ -140,7 +164,7 @@ fn main() -> std::io::Result<()> {
         .map(|(i, v)| make_label(&xf, i, v))
         .collect::<Vec<String>>()
         .join("\n");
-    let face_strs = "".to_string();
+    let face_strs = render_faces(&xf, &proj_faces, positive_faces);
     fs::write(
         "/tmp/a.svg",
         format!(
@@ -149,7 +173,7 @@ fn main() -> std::io::Result<()> {
 {}{}{}
 </svg>
 "#,
-            poly_strs, label_strs, face_strs,
+            face_strs, poly_strs, label_strs,
         ),
     )?;
     Ok(())
