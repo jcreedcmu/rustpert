@@ -36,10 +36,8 @@ mod custom_rational {
     where
         S: Serializer,
     {
-        let rr = WireRational {
-            numerator: r.numer().to_string(),
-            denominator: r.denom().to_string(),
-        };
+        let rr =
+            WireRational { numerator: r.numer().to_string(), denominator: r.denom().to_string() };
         rr.serialize(serializer)
     }
 }
@@ -63,5 +61,5 @@ pub struct Polyhedron {
     pub vertices: Vec<Vertex>,
     #[serde(rename = "f")]
     /// The faces, represented as lists of indexes into `vertices` above.
-    pub faces: Vec<Vec<u32>>,
+    pub faces: Vec<Vec<usize>>,
 }

@@ -60,10 +60,8 @@ fn proj_vertex(v: &Point3d<Rational>) -> Point2d {
 }
 
 /// Get the coordinates of all faces of a polyhedron, projected to 2d
-fn get_proj_faces(vs: &Vec<Point3d<Rational>>, fs: &Vec<Vec<u32>>) -> Vec<Poly> {
-    fs.iter()
-        .map(|face| face.iter().map(|v_ix| proj_vertex(&vs[*v_ix as usize])).collect())
-        .collect()
+fn get_proj_faces(vs: &Vec<Point3d<Rational>>, fs: &Vec<Vec<usize>>) -> Vec<Poly> {
+    fs.iter().map(|face| face.iter().map(|v_ix| proj_vertex(&vs[*v_ix])).collect()).collect()
 }
 
 fn render_faces(xf: &Xform, proj_faces: &Vec<Poly>, face_indexes: Vec<usize>) -> String {
@@ -105,13 +103,13 @@ fn make_label(xf: &Xform, i: usize, v: &Point3d<rug::Rational>) -> String {
 }
 
 /// Returns the list of indices of faces that have positive orientation
-fn get_positive_faces(vs: &Vec<Point3d<Rational>>, fs: &Vec<Vec<u32>>) -> Vec<usize> {
+fn get_positive_faces(vs: &Vec<Point3d<Rational>>, fs: &Vec<Vec<usize>>) -> Vec<usize> {
     fs.iter()
         .enumerate()
         .filter_map(|(i, face)| {
-            let v0 = vs[face[0] as usize].clone();
-            let v1 = vs[face[1] as usize].clone();
-            let v2 = vs[face[2] as usize].clone();
+            let v0 = vs[face[0]].clone();
+            let v1 = vs[face[1]].clone();
+            let v2 = vs[face[2]].clone();
             let cprod = (v1.clone() - v0.clone()).cross(v2 - v0);
             if cprod.z > 0 {
                 Some(i)
