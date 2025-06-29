@@ -85,6 +85,26 @@ where
     }
 }
 
+impl<T> ops::Mul<T> for Point3d<T>
+where
+    T: ops::Mul<T, Output = T> + Clone,
+{
+    type Output = Point3d<T>;
+    fn mul(self, rhs: T) -> Point3d<T> {
+        Point3d { x: self.x * rhs.clone(), y: self.y * rhs.clone(), z: self.z * rhs.clone() }
+    }
+}
+
+impl<T> ops::Add<Point3d<T>> for Point3d<T>
+where
+    T: ops::Add<T, Output = T>,
+{
+    type Output = Point3d<T>;
+    fn add(self, rhs: Point3d<T>) -> Point3d<T> {
+        Point3d { x: self.x + rhs.x, y: self.y + rhs.y, z: self.z + rhs.z }
+    }
+}
+
 impl<T> ops::Sub<Point3d<T>> for Point3d<T>
 where
     T: ops::Sub<T, Output = T>,
@@ -105,5 +125,16 @@ where
             y: self.z.clone() * rhs.x.clone() - self.x.clone() * rhs.z.clone(),
             z: self.x.clone() * rhs.y.clone() - self.y.clone() * rhs.x.clone(),
         }
+    }
+}
+
+impl<T> Point3d<T>
+where
+    T: ops::Add<T, Output = T> + ops::Mul<T, Output = T> + Clone,
+{
+    pub fn dot(self, rhs: Point3d<T>) -> T {
+        (self.x.clone() * rhs.x.clone())
+            + (self.y.clone() * rhs.y.clone())
+            + (self.z.clone() * rhs.z.clone())
     }
 }

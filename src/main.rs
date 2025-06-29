@@ -1,9 +1,11 @@
-use std::fs;
 mod geom;
 mod interval;
 mod json_rep;
+mod search;
+
 use geom::Point3d;
 use rug::Rational;
+use std::fs;
 
 /// A point in 2d
 struct Point2d {
