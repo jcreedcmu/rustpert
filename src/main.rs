@@ -76,7 +76,7 @@ fn render_faces(xf: &Xform, proj_faces: &Vec<Poly>, face_indexes: Vec<usize>) ->
                 })
                 .collect::<Vec<String>>()
                 .join(" ");
-            format!(r#" <polygon points="{}" style="fill:#def;" /> "#, points_str)
+            format!(r#" <polygon points="{}" style="fill:#04f;fill-opacity:0.4;" /> "#, points_str)
         })
         .collect::<Vec<String>>()
         .join("\n")
@@ -91,8 +91,14 @@ fn make_label(xf: &Xform, i: usize, v: &Point3d<rug::Rational>) -> String {
         r#"
 <circle cx="{}" cy="{}" r="4" fill="black"  />
 <circle cx="{}" cy="{}" r="9" fill="white"  />
-    <text text-anchor="middle" dominant-baseline="middle" x="{}" y="{}" >{}</text>"#,
-        c.x, c.y, d.x, d.y, d.x, d.y, i
+    <text font-family="iosevka" font-weight="bold" font-size="12" text-anchor="middle" dominant-baseline="middle" x="{}" y="{}" >{}</text>"#,
+        c.x,
+        c.y,
+        d.x,
+        d.y,
+        d.x,
+        d.y + 1., // slight adjustment to position text better
+        i
     )
 }
 
