@@ -3,6 +3,7 @@ mod geom;
 mod interval;
 mod json_rep;
 use geom::Point3d;
+use rug::Rational;
 
 /// A point in 2d
 struct Point2d {
@@ -55,7 +56,7 @@ fn format_xf_poly(xf: &Xform, p: &Poly) -> String {
 /// Get the coordinates of all faces of a polyhedron, projected to 2d
 ///
 /// The current projection discards the z coordinate.
-fn get_faces(vs: &Vec<Point3d<rug::Rational>>, fs: &Vec<Vec<u32>>) -> Vec<Poly> {
+fn get_faces(vs: &Vec<Point3d<Rational>>, fs: &Vec<Vec<u32>>) -> Vec<Poly> {
     let mut v: Vec<Poly> = Vec::new();
     for face in fs.iter() {
         let mut ps: Vec<Point2d> = Vec::new();
@@ -98,7 +99,9 @@ fn main() -> std::io::Result<()> {
         scale: 75.,
         translate: Point2d { x: 250., y: 250. },
     };
-    let vertices = vertices
+
+    // Convert from wire format to Point3d<Rational>
+    let vertices: Vec<Point3d<Rational>> = vertices
         .into_iter()
         .map(|v| Point3d {
             x: v.x,
@@ -106,6 +109,17 @@ fn main() -> std::io::Result<()> {
             z: v.z,
         })
         .collect();
+
+    // Apply a rotation
+    let q: geom::Quat<rug::Rational> = geom::Quat {
+        r: rug::Rational::from(10),
+        a: rug::Rational::from(10),
+        b: rug::Rational::from(4),
+        c: rug::Rational::from(2),
+    };
+
+    let vertices = vertices.into_iter().map(|v| q.clone() * v).collect();
+
     let real_faces = get_faces(&vertices, &faces);
     let poly_strs = real_faces
         .iter()
