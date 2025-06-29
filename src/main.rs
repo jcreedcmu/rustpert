@@ -1,7 +1,8 @@
 use std::fs;
+mod geom;
 mod interval;
 mod json_rep;
-mod rotate;
+use geom::Point3d;
 
 /// A point in 2d
 struct Point2d {
@@ -54,15 +55,15 @@ fn format_xf_poly(xf: &Xform, p: &Poly) -> String {
 /// Get the coordinates of all faces of a polyhedron, projected to 2d
 ///
 /// The current projection discards the z coordinate.
-fn get_faces(p: &json_rep::Polyhedron) -> Vec<Poly> {
+fn get_faces(vs: &Vec<Point3d<rug::Rational>>, fs: &Vec<Vec<u32>>) -> Vec<Poly> {
     let mut v: Vec<Poly> = Vec::new();
-    for face in p.faces.iter() {
+    for face in fs.iter() {
         let mut ps: Vec<Point2d> = Vec::new();
         for v_ix in face.iter() {
             let q: usize = *v_ix as usize;
             ps.push(Point2d {
-                x: p.vertices[q].x.to_f64(),
-                y: p.vertices[q].y.to_f64(),
+                x: vs[q].x.to_f64(),
+                y: vs[q].y.to_f64(),
             });
         }
         v.push(ps);
@@ -80,9 +81,12 @@ fn main() -> std::io::Result<()> {
     println!("JSON:");
     println!("=========");
     println!("{}", serde_json::to_string(&poly)?);
+
+    let json_rep::Polyhedron { vertices, faces } = poly;
+
     println!("Vertices:");
     println!("=========");
-    for v in &poly.vertices {
+    for v in &vertices {
         println!(
             "{{x: {}, y: {}, z: {}}}",
             v.x.to_f64(),
@@ -94,9 +98,16 @@ fn main() -> std::io::Result<()> {
         scale: 75.,
         translate: Point2d { x: 250., y: 250. },
     };
-    //    let lines_str = format_xf_line(&xf, &Point2d { x: 0., y: 0. }, &Point2d { x: 1., y: 1. });
-    let faces = get_faces(&poly);
-    let poly_strs = faces
+    let vertices = vertices
+        .into_iter()
+        .map(|v| Point3d {
+            x: v.x,
+            y: v.y,
+            z: v.z,
+        })
+        .collect();
+    let real_faces = get_faces(&vertices, &faces);
+    let poly_strs = real_faces
         .iter()
         .map(|face| format_xf_poly(&xf, face))
         .collect::<Vec<String>>()

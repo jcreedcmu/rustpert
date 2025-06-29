@@ -4,17 +4,17 @@ use std::ops;
 
 #[derive(Clone)]
 pub struct Quat<T> {
-    r: T,
-    a: T,
-    b: T,
-    c: T,
+    pub r: T,
+    pub a: T,
+    pub b: T,
+    pub c: T,
 }
 
 /// A point in 3d
-struct Point3d<T> {
-    x: T,
-    y: T,
-    z: T,
+pub struct Point3d<T> {
+    pub x: T,
+    pub y: T,
+    pub z: T,
 }
 
 impl<T> Quat<T>
