@@ -31,10 +31,7 @@ fn format_line(p1: &Point2d, p2: &Point2d) -> String {
 impl Xform {
     /// Applies a 2d transform to a point
     fn apply(&self, p: &Point2d) -> Point2d {
-        Point2d {
-            x: self.scale * p.x + self.translate.x,
-            y: self.scale * p.y + self.translate.y,
-        }
+        Point2d { x: self.scale * p.x + self.translate.x, y: self.scale * p.y + self.translate.y }
     }
 }
 
@@ -53,19 +50,20 @@ fn format_xf_poly(xf: &Xform, p: &Poly) -> String {
     s
 }
 
-/// Get the coordinates of all faces of a polyhedron, projected to 2d
+/// Project a 3d vertex into 3d
 ///
 /// The current projection discards the z coordinate.
-fn get_faces(vs: &Vec<Point3d<Rational>>, fs: &Vec<Vec<u32>>) -> Vec<Poly> {
+fn proj_vertex(v: &Point3d<Rational>) -> Point2d {
+    Point2d { x: v.x.to_f64(), y: v.y.to_f64() }
+}
+
+/// Get the coordinates of all faces of a polyhedron, projected to 2d
+fn get_proj_faces(vs: &Vec<Point3d<Rational>>, fs: &Vec<Vec<u32>>) -> Vec<Poly> {
     let mut v: Vec<Poly> = Vec::new();
     for face in fs.iter() {
         let mut ps: Vec<Point2d> = Vec::new();
         for v_ix in face.iter() {
-            let q: usize = *v_ix as usize;
-            ps.push(Point2d {
-                x: vs[q].x.to_f64(),
-                y: vs[q].y.to_f64(),
-            });
+            ps.push(proj_vertex(&vs[*v_ix as usize]));
         }
         v.push(ps);
     }
@@ -73,15 +71,9 @@ fn get_faces(vs: &Vec<Point3d<Rational>>, fs: &Vec<Vec<u32>>) -> Vec<Poly> {
 }
 
 fn make_label(xf: &Xform, i: usize, v: &Point3d<rug::Rational>) -> String {
-    let c = xf.apply(&Point2d {
-        x: v.x.to_f64(),
-        y: v.y.to_f64(),
-    });
+    let c = xf.apply(&Point2d { x: v.x.to_f64(), y: v.y.to_f64() });
     let label_scale: f64 = 1.075;
-    let d = xf.apply(&Point2d {
-        x: label_scale * v.x.to_f64(),
-        y: label_scale * v.y.to_f64(),
-    });
+    let d = xf.apply(&Point2d { x: label_scale * v.x.to_f64(), y: label_scale * v.y.to_f64() });
 
     format!(
         r#"
@@ -90,6 +82,24 @@ fn make_label(xf: &Xform, i: usize, v: &Point3d<rug::Rational>) -> String {
     <text text-anchor="middle" dominant-baseline="middle" x="{}" y="{}" >{}</text>"#,
         c.x, c.y, d.x, d.y, d.x, d.y, i
     )
+}
+
+/// Returns the list of indices of faces that have positive orientation
+fn get_positive_faces(vs: &Vec<Point3d<Rational>>, fs: &Vec<Vec<u32>>) -> Vec<usize> {
+    fs.iter()
+        .enumerate()
+        .filter_map(|(i, face)| {
+            let v0 = vs[face[0] as usize].clone();
+            let v1 = vs[face[1] as usize].clone();
+            let v2 = vs[face[1] as usize].clone();
+            let cprod = (v1.clone() - v0.clone()).cross(v2 - v0);
+            if cprod.z > 0 {
+                Some(i)
+            } else {
+                None
+            }
+        })
+        .collect()
 }
 
 /// Print out some debugging information.
@@ -108,27 +118,13 @@ fn main() -> std::io::Result<()> {
     println!("Vertices:");
     println!("=========");
     for v in &vertices {
-        println!(
-            "{{x: {}, y: {}, z: {}}}",
-            v.x.to_f64(),
-            v.y.to_f64(),
-            v.z.to_f64(),
-        );
+        println!("{{x: {}, y: {}, z: {}}}", v.x.to_f64(), v.y.to_f64(), v.z.to_f64(),);
     }
-    let xf = Xform {
-        scale: 200.,
-        translate: Point2d { x: 500., y: 500. },
-    };
+    let xf = Xform { scale: 200., translate: Point2d { x: 500., y: 500. } };
 
     // Convert from wire format to Point3d<Rational>
-    let vertices: Vec<Point3d<Rational>> = vertices
-        .into_iter()
-        .map(|v| Point3d {
-            x: v.x,
-            y: v.y,
-            z: v.z,
-        })
-        .collect();
+    let vertices: Vec<Point3d<Rational>> =
+        vertices.into_iter().map(|v| Point3d { x: v.x, y: v.y, z: v.z }).collect();
 
     // Apply a rotation
     let q: geom::Quat<rug::Rational> = geom::Quat {
@@ -140,27 +136,26 @@ fn main() -> std::io::Result<()> {
 
     let vertices = vertices.into_iter().map(|v| q.clone() * v).collect();
 
-    let real_faces = get_faces(&vertices, &faces);
-    let poly_strs = real_faces
-        .iter()
-        .map(|face| format_xf_poly(&xf, face))
-        .collect::<Vec<String>>()
-        .join("\n");
+    let positive_faces = get_positive_faces(&vertices, &faces);
+    let proj_faces = get_proj_faces(&vertices, &faces);
+    let poly_strs =
+        proj_faces.iter().map(|face| format_xf_poly(&xf, face)).collect::<Vec<String>>().join("\n");
     let label_strs = vertices
         .iter()
         .enumerate()
         .map(|(i, v)| make_label(&xf, i, v))
         .collect::<Vec<String>>()
         .join("\n");
+    let face_strs = "".to_string();
     fs::write(
         "/tmp/a.svg",
         format!(
             r#"
 <svg height="1000" width="1000" xmlns="http://www.w3.org/2000/svg">
-{}{}
+{}{}{}
 </svg>
 "#,
-            poly_strs, label_strs,
+            poly_strs, label_strs, face_strs,
         ),
     )?;
     Ok(())

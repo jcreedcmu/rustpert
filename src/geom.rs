@@ -11,6 +11,7 @@ pub struct Quat<T> {
 }
 
 /// A point in 3d
+#[derive(Clone)]
 pub struct Point3d<T> {
     pub x: T,
     pub y: T,
@@ -100,6 +101,33 @@ where
             x: non_norm.a / sn.clone(),
             y: non_norm.b / sn.clone(),
             z: non_norm.c / sn.clone(),
+        }
+    }
+}
+
+impl<T> ops::Sub<Point3d<T>> for Point3d<T>
+where
+    T: ops::Sub<T, Output = T>,
+{
+    type Output = Point3d<T>;
+    fn sub(self, rhs: Point3d<T>) -> Point3d<T> {
+        Point3d {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+            z: self.z - rhs.z,
+        }
+    }
+}
+
+impl<T> Point3d<T>
+where
+    T: ops::Sub<T, Output = T> + ops::Mul<T, Output = T> + Clone,
+{
+    pub fn cross(self, rhs: Point3d<T>) -> Point3d<T> {
+        Point3d {
+            x: self.y.clone() * rhs.z.clone() - self.z.clone() * rhs.y.clone(),
+            y: self.z.clone() * rhs.x.clone() - self.x.clone() * rhs.z.clone(),
+            z: self.x.clone() * rhs.y.clone() - self.y.clone() * rhs.z.clone(),
         }
     }
 }
