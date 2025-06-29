@@ -72,6 +72,26 @@ fn get_faces(vs: &Vec<Point3d<Rational>>, fs: &Vec<Vec<u32>>) -> Vec<Poly> {
     v
 }
 
+fn make_label(xf: &Xform, i: usize, v: &Point3d<rug::Rational>) -> String {
+    let c = xf.apply(&Point2d {
+        x: v.x.to_f64(),
+        y: v.y.to_f64(),
+    });
+    let label_scale: f64 = 1.075;
+    let d = xf.apply(&Point2d {
+        x: label_scale * v.x.to_f64(),
+        y: label_scale * v.y.to_f64(),
+    });
+
+    format!(
+        r#"
+<circle cx="{}" cy="{}" r="4" fill="black"  />
+<circle cx="{}" cy="{}" r="9" fill="white"  />
+    <text text-anchor="middle" dominant-baseline="middle" x="{}" y="{}" >{}</text>"#,
+        c.x, c.y, d.x, d.y, d.x, d.y, i
+    )
+}
+
 /// Print out some debugging information.
 fn main() -> std::io::Result<()> {
     let json_string = fs::read_to_string("data/rational-snub.json")?;
@@ -96,8 +116,8 @@ fn main() -> std::io::Result<()> {
         );
     }
     let xf = Xform {
-        scale: 75.,
-        translate: Point2d { x: 250., y: 250. },
+        scale: 200.,
+        translate: Point2d { x: 500., y: 500. },
     };
 
     // Convert from wire format to Point3d<Rational>
@@ -113,9 +133,9 @@ fn main() -> std::io::Result<()> {
     // Apply a rotation
     let q: geom::Quat<rug::Rational> = geom::Quat {
         r: rug::Rational::from(10),
-        a: rug::Rational::from(10),
-        b: rug::Rational::from(4),
-        c: rug::Rational::from(2),
+        a: rug::Rational::from((99, 10)),
+        b: rug::Rational::from((11, 20)),
+        c: rug::Rational::from((20, 10)),
     };
 
     let vertices = vertices.into_iter().map(|v| q.clone() * v).collect();
@@ -126,16 +146,21 @@ fn main() -> std::io::Result<()> {
         .map(|face| format_xf_poly(&xf, face))
         .collect::<Vec<String>>()
         .join("\n");
-
+    let label_strs = vertices
+        .iter()
+        .enumerate()
+        .map(|(i, v)| make_label(&xf, i, v))
+        .collect::<Vec<String>>()
+        .join("\n");
     fs::write(
         "/tmp/a.svg",
         format!(
             r#"
-<svg height="500" width="500" xmlns="http://www.w3.org/2000/svg">
-{}
+<svg height="1000" width="1000" xmlns="http://www.w3.org/2000/svg">
+{}{}
 </svg>
 "#,
-            poly_strs
+            poly_strs, label_strs,
         ),
     )?;
     Ok(())
