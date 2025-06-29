@@ -110,13 +110,7 @@ fn get_positive_faces(vs: &Vec<Point3d<Rational>>, fs: &Vec<Vec<u32>>) -> Vec<us
             let v0 = vs[face[0] as usize].clone();
             let v1 = vs[face[1] as usize].clone();
             let v2 = vs[face[2] as usize].clone();
-            if i == 24 {
-                println!("hello {:?} {:?} {:?}", v0.clone(), v1.clone(), v2.clone());
-            }
             let cprod = (v1.clone() - v0.clone()).cross(v2 - v0);
-            if i == 24 {
-                println!("hello {:?} {:?} ", cprod.z, cprod.z.to_f64());
-            }
             if cprod.z > 0 {
                 Some(i)
             } else {
