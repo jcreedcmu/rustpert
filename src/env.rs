@@ -1,6 +1,8 @@
 #![allow(dead_code)]
 
+use crate::geom;
 use crate::geom::Point3d;
+use crate::geom::Quat;
 use crate::interval::IntervalSign;
 use crate::render;
 use crate::render_geom::{Point2d, Poly};
@@ -12,10 +14,17 @@ use std::ops;
 ///
 /// Doesn't vary as we traverse different hypercubes.
 pub struct Env {
+    /// List of vertices
     pub vertices: Vec<Point3d<Rational>>,
     /// List of faces, each face is an oriented cyclic list of vertex
     /// indices indexing into `.vertices`.
     pub faces: Vec<Vec<usize>>,
+
+    /// A rotation that picks out what patch we're considering
+    pub patch_rotation: Quat<Rational>,
+    /// A cache of vertices rotated by patch_rotation
+    pub rotated_vertices: Vec<Point3d<Rational>>,
+
     /// List of indexes into `.faces` asserting that these faces should
     /// remain in the positive orientation after rotation. If that constraint
     /// is satisfied, then we're in the chosen "patch".
@@ -82,10 +91,12 @@ impl Env {
     pub fn new(
         vertices: Vec<Point3d<Rational>>,
         faces: Vec<Vec<usize>>,
+        rotation: Quat<Rational>,
         circuit: Vec<usize>,
     ) -> Env {
-        let positive_faces = get_positive_faces(&vertices, &faces);
-        Env { vertices, faces, circuit, positive_faces }
+        let rotated_vertices = geom::rotate_vertices(&rotation, &vertices);
+        let positive_faces = get_positive_faces(&rotated_vertices, &faces);
+        Env { vertices, faces, circuit, positive_faces, patch_rotation: rotation, rotated_vertices }
     }
 
     /// Returns svg string
@@ -97,7 +108,9 @@ impl Env {
     pub fn get_proj_faces(&self) -> Vec<Poly> {
         self.faces
             .iter()
-            .map(|face| face.iter().map(|v_ix| proj_vertex(&self.vertices[*v_ix])).collect())
+            .map(|face| {
+                face.iter().map(|v_ix| proj_vertex(&self.rotated_vertices[*v_ix])).collect()
+            })
             .collect()
     }
 }

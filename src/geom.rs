@@ -138,3 +138,11 @@ where
             + (self.z.clone() * rhs.z.clone())
     }
 }
+
+pub fn rotate_vertices<T, R>(rotation: &R, vertices: &Vec<Point3d<T>>) -> Vec<Point3d<T>>
+where
+    T: Clone + ops::Sub<T, Output = T>,
+    R: Clone + ops::Mul<Point3d<T>, Output = Point3d<T>>,
+{
+    vertices.iter().map(|v| rotation.clone() * v.clone()).collect()
+}

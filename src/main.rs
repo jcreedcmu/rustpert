@@ -33,7 +33,7 @@ fn main() -> std::io::Result<()> {
     let vertices: Vec<Point3d<Rational>> =
         vertices.into_iter().map(|v| Point3d { x: v.x, y: v.y, z: v.z }).collect();
 
-    // Apply a rotation
+    // A rotation
     let q: geom::Quat<rug::Rational> = geom::Quat {
         r: rug::Rational::from(10),
         a: rug::Rational::from((99, 10)),
@@ -41,9 +41,7 @@ fn main() -> std::io::Result<()> {
         c: rug::Rational::from((20, 10)),
     };
 
-    let vertices = vertices.into_iter().map(|v| q.clone() * v).collect();
-
-    let env = env::Env::new(vertices, faces, vec![0, 16, 3, 23, 5, 14, 6, 19, 9, 20, 2, 17]);
+    let env = env::Env::new(vertices, faces, q, vec![0, 16, 3, 23, 5, 14, 6, 19, 9, 20, 2, 17]);
 
     fs::write("/tmp/a.svg", env.render())?;
     Ok(())
