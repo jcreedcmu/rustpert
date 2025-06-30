@@ -70,7 +70,7 @@ pub fn render(env: &env::Env) -> String {
     let poly_strs =
         proj_faces.iter().map(|face| format_xf_poly(&xf, face)).collect::<Vec<String>>().join("\n");
     let label_strs = env
-        .rotated_vertices
+        .vertices
         .iter()
         .enumerate()
         .map(|(i, v)| make_label(&xf, i, v))
