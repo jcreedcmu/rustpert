@@ -33,9 +33,15 @@ where
 // be meaningful. We don't have trichotomy for intervals. An interval
 // spanning zero fails to be positive, and fails to be negative.
 
-trait IntervalSign {
+pub trait IntervalSign {
+    /// True if for all values v in the interval, we have v is positive
     fn is_positive(&self) -> bool;
+    /// True if for all values v in the interval, we have v is negative
     fn is_negative(&self) -> bool;
+    /// True if there exists a value v in the interval, such that v is positive
+    fn is_maybe_positive(&self) -> bool;
+    /// True if there exists a value v in the interval, such that v is negative
+    fn is_maybe_negative(&self) -> bool;
 }
 
 impl IntervalSign for Interval<i32> {
@@ -46,6 +52,14 @@ impl IntervalSign for Interval<i32> {
     fn is_negative(&self) -> bool {
         self.max.is_negative()
     }
+
+    fn is_maybe_positive(&self) -> bool {
+        self.max.is_positive()
+    }
+
+    fn is_maybe_negative(&self) -> bool {
+        self.min.is_negative()
+    }
 }
 
 impl IntervalSign for Interval<rug::Rational> {
@@ -55,6 +69,32 @@ impl IntervalSign for Interval<rug::Rational> {
 
     fn is_negative(&self) -> bool {
         self.max.is_negative()
+    }
+
+    fn is_maybe_positive(&self) -> bool {
+        self.max.is_positive()
+    }
+
+    fn is_maybe_negative(&self) -> bool {
+        self.min.is_negative()
+    }
+}
+
+impl IntervalSign for rug::Rational {
+    fn is_positive(&self) -> bool {
+        self.is_positive()
+    }
+
+    fn is_negative(&self) -> bool {
+        self.is_negative()
+    }
+
+    fn is_maybe_positive(&self) -> bool {
+        self.is_positive()
+    }
+
+    fn is_maybe_negative(&self) -> bool {
+        self.is_negative()
     }
 }
 
@@ -72,11 +112,7 @@ where
         let bas = ba * bac;
         let basc = bas.clone();
         Interval {
-            min: if self.min.signum() != self.max.signum() {
-                T::zero()
-            } else {
-                sas.min(bas)
-            },
+            min: if self.min.signum() != self.max.signum() { T::zero() } else { sas.min(bas) },
             max: basc.max(sasc),
         }
     }
@@ -89,10 +125,7 @@ where
     type Output = Interval<T>;
 
     fn add(self, rhs: Interval<T>) -> Interval<T> {
-        Interval {
-            min: self.min + rhs.min,
-            max: self.max + rhs.max,
-        }
+        Interval { min: self.min + rhs.min, max: self.max + rhs.max }
     }
 }
 
@@ -117,10 +150,7 @@ where
         let ssc = ss.clone();
         let sbc = sb.clone();
         let bbc = bb.clone();
-        Interval {
-            min: bs.min(ss).min(sb).min(bb),
-            max: bsc.max(ssc).max(sbc).max(bbc),
-        }
+        Interval { min: bs.min(ss).min(sb).min(bb), max: bsc.max(ssc).max(sbc).max(bbc) }
     }
 }
 
@@ -130,38 +160,23 @@ mod tests {
 
     #[test]
     fn test_add() {
-        assert_eq!(
-            Interval::new(0, 4) + Interval::new(1, 10),
-            Interval::new(1, 14)
-        );
+        assert_eq!(Interval::new(0, 4) + Interval::new(1, 10), Interval::new(1, 14));
     }
     #[test]
     fn test_mul1() {
-        assert_eq!(
-            Interval::new(-3, 4) * Interval::new(-100, 10),
-            Interval::new(-400, 300)
-        );
+        assert_eq!(Interval::new(-3, 4) * Interval::new(-100, 10), Interval::new(-400, 300));
     }
     #[test]
     fn test_mul2() {
-        assert_eq!(
-            Interval::new(3, 4) * Interval::new(-100, 10),
-            Interval::new(-400, 40)
-        );
+        assert_eq!(Interval::new(3, 4) * Interval::new(-100, 10), Interval::new(-400, 40));
     }
     #[test]
     fn test_mul3() {
-        assert_eq!(
-            Interval::new(-4, 3) * Interval::new(-100, 10),
-            Interval::new(-300, 400)
-        );
+        assert_eq!(Interval::new(-4, 3) * Interval::new(-100, 10), Interval::new(-300, 400));
     }
     #[test]
     fn test_mul4() {
-        assert_eq!(
-            Interval::new(-4, -3) * Interval::new(-100, 10),
-            Interval::new(-40, 400)
-        );
+        assert_eq!(Interval::new(-4, -3) * Interval::new(-100, 10), Interval::new(-40, 400));
     }
     #[test]
     fn test_square1() {

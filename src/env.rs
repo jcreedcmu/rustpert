@@ -1,7 +1,11 @@
+#![allow(dead_code)]
+
 use crate::geom::Point3d;
+use crate::interval::IntervalSign;
 use crate::render;
 use crate::render_geom::{Point2d, Poly};
 use rug::Rational;
+use std::ops;
 
 /// An environment type containing other things
 /// we need to know about for search.
@@ -31,11 +35,25 @@ pub struct Env {
     pub circuit: Vec<usize>,
 }
 
-fn is_positive_face(face_vs: &Vec<Point3d<Rational>>) -> bool {
+/// Given an oriented list of vertices of a face, return true if that
+/// face could be in positive orientation with respect to the z-axis.
+///
+/// We assume there are at least 3 points in the face, and that all
+/// the points are coplanar. In fact only the first 3 points are used.
+/// We lean on the IntervalSign trait with the intention of using it
+/// for Interval. The reason being that for a rotation to be in a patch,
+/// it must make the correct set of faces all be positive. Therefore,
+/// we want to check if a given interval-rotation *can* make all of those
+/// faces positive. If for any face, the interval-rotation *cannot* make
+/// the face positive, we can rule it out.
+fn is_positive_face<T>(face_vs: &Vec<Point3d<T>>) -> bool
+where
+    T: IntervalSign + Clone + ops::Sub<T, Output = T> + ops::Mul<T, Output = T>,
+{
     let v0 = face_vs[0].clone();
     let v1 = face_vs[1].clone();
     let v2 = face_vs[2].clone();
-    ((v1.clone() - v0.clone()).cross(v2 - v0)).z > 0
+    ((v1 - v0.clone()).cross(v2 - v0)).z.is_maybe_positive()
 }
 
 /// Returns the list of indices of faces that have positive orientation
