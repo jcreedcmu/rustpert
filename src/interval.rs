@@ -23,9 +23,8 @@ where
         Interval { min, max }
     }
 
-    pub fn exact(val: T) -> Interval<T> {
-        let max = val.clone();
-        Interval { min: val, max }
+    pub fn exact(val: &T) -> Interval<T> {
+        Interval { min: val.clone(), max: val.clone() }
     }
 }
 
@@ -101,6 +100,7 @@ impl IntervalSign for Rational {
     }
 }
 
+// FIXME: Consider using Self for the return type instead of making this generic.
 pub trait Square<T> {
     fn square(self) -> T;
 }
@@ -162,6 +162,38 @@ where
 
     fn add(self, rhs: Interval<T>) -> Interval<T> {
         Interval { min: self.min + rhs.min, max: self.max + rhs.max }
+    }
+}
+
+impl<T> ops::Sub<Interval<T>> for Interval<T>
+where
+    T: ops::Sub<T, Output = T> + Clone,
+{
+    type Output = Interval<T>;
+
+    fn sub(self, rhs: Interval<T>) -> Interval<T> {
+        Interval { min: self.min - rhs.max, max: self.max - rhs.min }
+    }
+}
+
+impl<T> ops::Neg for Interval<T>
+where
+    T: ops::Neg<Output = T> + Clone,
+{
+    type Output = Interval<T>;
+
+    fn neg(self) -> Interval<T> {
+        Interval { min: -self.max, max: -self.min }
+    }
+}
+
+impl num_traits::Zero for Interval<Rational> {
+    fn zero() -> Interval<Rational> {
+        Interval { min: Rational::from(0), max: Rational::from(0) }
+    }
+
+    fn is_zero(&self) -> bool {
+        self.min == Rational::from(0) && self.max == Rational::from(0)
     }
 }
 

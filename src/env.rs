@@ -50,7 +50,7 @@ pub struct Env {
 /// we want to check if a given interval-rotation *can* make all of those
 /// faces positive. If for any face, the interval-rotation *cannot* make
 /// the face positive, we can rule it out.
-fn is_positive_face<T>(face_vs: &Vec<Point3d<T>>) -> bool
+pub fn is_positive_face<T>(face_vs: &Vec<Point3d<T>>) -> bool
 where
     T: IntervalSign + Clone + ops::Sub<T, Output = T> + ops::Mul<T, Output = T>,
 {
