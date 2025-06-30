@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use rug::Rational;
 use std::ops;
 
 /// An interval between two values
@@ -44,6 +45,8 @@ pub trait IntervalSign {
     fn is_maybe_negative(&self) -> bool;
 }
 
+// FIXME: I don't love the specific impls for i32 and Rational here,
+// they might get out of sync.
 impl IntervalSign for Interval<i32> {
     fn is_positive(&self) -> bool {
         self.min.is_positive()
@@ -62,7 +65,7 @@ impl IntervalSign for Interval<i32> {
     }
 }
 
-impl IntervalSign for Interval<rug::Rational> {
+impl IntervalSign for Interval<Rational> {
     fn is_positive(&self) -> bool {
         self.min.is_positive()
     }
@@ -80,7 +83,7 @@ impl IntervalSign for Interval<rug::Rational> {
     }
 }
 
-impl IntervalSign for rug::Rational {
+impl IntervalSign for Rational {
     fn is_positive(&self) -> bool {
         self.is_positive()
     }
@@ -98,11 +101,14 @@ impl IntervalSign for rug::Rational {
     }
 }
 
-impl<T> Interval<T>
-where
-    T: num_traits::Signed + Ord + Clone,
-{
-    pub fn square(self) -> Interval<T> {
+pub trait Square<T> {
+    fn square(self) -> T;
+}
+
+// FIXME: I don't love the specific impls for i32 and Rational here,
+// they might get out of sync.
+impl Square<Interval<i32>> for Interval<i32> {
+    fn square(self) -> Interval<i32> {
         let sa = self.min.abs();
         let sac = sa.clone();
         let ba = self.max.abs();
@@ -112,9 +118,39 @@ where
         let bas = ba * bac;
         let basc = bas.clone();
         Interval {
-            min: if self.min.signum() != self.max.signum() { T::zero() } else { sas.min(bas) },
+            min: if self.min.signum() != self.max.signum() { 0 } else { sas.min(bas) },
             max: basc.max(sasc),
         }
+    }
+}
+
+impl Square<Interval<Rational>> for Interval<Rational> {
+    fn square(self) -> Interval<Rational> {
+        let minsign = self.clone().min.signum();
+        let maxsign = self.clone().max.signum();
+        let sa = self.min.abs();
+        let sac = sa.clone();
+        let ba = self.max.abs();
+        let bac = ba.clone();
+        let sas = sa * sac;
+        let sasc = sas.clone();
+        let bas = ba * bac;
+        let basc = bas.clone();
+        Interval {
+            min: if minsign != maxsign { Rational::from(0) } else { sas.min(bas) },
+            max: basc.max(sasc),
+        }
+    }
+}
+
+impl Interval<Rational> {
+    pub fn recip(self) -> Interval<Rational> {
+        let minsign = self.clone().min.signum();
+        let maxsign = self.clone().max.signum();
+        if minsign != maxsign {
+            panic!("Divide by zero in interval arithmetic, didn't expect this to happen");
+        }
+        Interval { max: self.min.recip(), min: self.max.recip() }
     }
 }
 
@@ -202,11 +238,11 @@ mod tests {
 
     #[test]
     fn test_rational() {
-        let half = Interval::new(rug::Rational::from((1, 4)), rug::Rational::from((3, 4)));
-        let three_halves = Interval::new(rug::Rational::from((5, 4)), rug::Rational::from((7, 4)));
+        let half = Interval::new(Rational::from((1, 4)), Rational::from((3, 4)));
+        let three_halves = Interval::new(Rational::from((5, 4)), Rational::from((7, 4)));
         assert_eq!(
             half + three_halves,
-            Interval::new(rug::Rational::from((3, 2)), rug::Rational::from((5, 2)))
+            Interval::new(Rational::from((3, 2)), Rational::from((5, 2)))
         );
     }
 
@@ -222,8 +258,8 @@ mod tests {
         assert_eq!(Interval::new(0, 4).is_negative(), false);
         assert_eq!(Interval::new(1, 4).is_negative(), false);
 
-        let half = Interval::new(rug::Rational::from((1, 4)), rug::Rational::from((3, 4)));
-        let three_halves = Interval::new(rug::Rational::from((5, 4)), rug::Rational::from((7, 4)));
+        let half = Interval::new(Rational::from((1, 4)), Rational::from((3, 4)));
+        let three_halves = Interval::new(Rational::from((5, 4)), Rational::from((7, 4)));
         let rat_iv = half + three_halves;
         assert_eq!(rat_iv.is_positive(), true);
     }

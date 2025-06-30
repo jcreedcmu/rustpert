@@ -1,5 +1,8 @@
 #![allow(dead_code)]
 
+use crate::interval::Interval;
+use crate::interval::Square;
+use rug::Rational;
 use std::ops;
 
 #[derive(Clone)]
@@ -27,15 +30,27 @@ where
     }
 }
 
-impl<T> Quat<T>
-where
-    T: ops::Add<T, Output = T> + ops::Mul<T, Output = T> + Clone,
-{
-    pub fn sqnorm(&self) -> T {
-        self.r.clone() * self.r.clone()
-            + self.a.clone() * self.a.clone()
-            + self.b.clone() * self.b.clone()
-            + self.c.clone() * self.c.clone()
+pub trait InvSqNorm<T> {
+    fn invsqnorm(self) -> T;
+}
+
+impl InvSqNorm<Rational> for Quat<Rational> {
+    fn invsqnorm(self) -> Rational {
+        (self.r.clone().square()
+            + self.a.clone().square()
+            + self.b.clone().square()
+            + self.c.clone().square())
+        .recip()
+    }
+}
+
+impl InvSqNorm<Interval<Rational>> for Quat<Interval<Rational>> {
+    fn invsqnorm(self) -> Interval<Rational> {
+        (self.r.clone().square()
+            + self.a.clone().square()
+            + self.b.clone().square()
+            + self.c.clone().square())
+        .recip()
     }
 }
 
@@ -67,20 +82,20 @@ where
     T: ops::Add<T, Output = T>
         + ops::Sub<T, Output = T>
         + ops::Mul<T, Output = T>
-        + ops::Div<T, Output = T>
         + ops::Neg<Output = T>
         + num_traits::Zero
         + Clone,
+    Quat<T>: InvSqNorm<T>,
 {
     type Output = Point3d<T>;
     fn mul(self, rhs: Point3d<T>) -> Point3d<T> {
-        let rhsq = Quat { r: T::zero(), a: rhs.x, b: rhs.y, c: rhs.z };
-        let sn = self.clone().sqnorm();
+        let rhsq: Quat<T> = Quat { r: T::zero(), a: rhs.x, b: rhs.y, c: rhs.z };
+        let sn = self.clone().invsqnorm();
         let non_norm = self.clone() * rhsq * self.conj();
         Point3d {
-            x: non_norm.a / sn.clone(),
-            y: non_norm.b / sn.clone(),
-            z: non_norm.c / sn.clone(),
+            x: non_norm.a * sn.clone(),
+            y: non_norm.b * sn.clone(),
+            z: non_norm.c * sn.clone(),
         }
     }
 }
