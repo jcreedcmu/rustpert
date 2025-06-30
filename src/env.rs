@@ -80,7 +80,7 @@ fn get_positive_faces(vs: &Vec<Point3d<Rational>>, fs: &Vec<Vec<usize>>) -> Vec<
         .collect()
 }
 
-/// Project a 3d vertex into 3d
+/// Project a 3d vertex into 2d
 ///
 /// The current projection discards the z coordinate.
 fn proj_vertex(v: &Point3d<Rational>) -> Point2d {
