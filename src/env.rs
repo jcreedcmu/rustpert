@@ -31,16 +31,20 @@ pub struct Env {
     pub circuit: Vec<usize>,
 }
 
+fn is_positive_face(face_vs: &Vec<Point3d<Rational>>) -> bool {
+    let v0 = face_vs[0].clone();
+    let v1 = face_vs[1].clone();
+    let v2 = face_vs[2].clone();
+    ((v1.clone() - v0.clone()).cross(v2 - v0)).z > 0
+}
+
 /// Returns the list of indices of faces that have positive orientation
 fn get_positive_faces(vs: &Vec<Point3d<Rational>>, fs: &Vec<Vec<usize>>) -> Vec<usize> {
     fs.iter()
         .enumerate()
         .filter_map(|(i, face)| {
-            let v0 = vs[face[0]].clone();
-            let v1 = vs[face[1]].clone();
-            let v2 = vs[face[2]].clone();
-            let cprod = (v1.clone() - v0.clone()).cross(v2 - v0);
-            if cprod.z > 0 {
+            let face_vs: Vec<Point3d<Rational>> = face.iter().map(|fvi| vs[*fvi].clone()).collect();
+            if is_positive_face(&face_vs) {
                 Some(i)
             } else {
                 None
